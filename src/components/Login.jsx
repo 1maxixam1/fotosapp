@@ -1,66 +1,30 @@
-
 import React, { useState } from 'react'
-import { Camera, Unlock, Lock } from 'lucide-react'
-
-const Login = ({ onPublic, onPrivate, onMaster }) => {
-  const [userId, setUserId] = useState('')
-
+import { Camera, Unlock, Lock, Shield } from 'lucide-react'
+export default function Login({ onPublic, onPrivate, onAdmin }) {
+  const [id, setId] = useState('')
   return (
-    <div className="min-h-screen flex items-center justify-center relative">
-      <div className="-z-10 absolute inset-0">
-        {/* Background injected by parent */}
-      </div>
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl max-w-md w-full mx-4 border border-orange-200">
-        <div className="text-center mb-8">
-          <Camera className="mx-auto mb-4 text-amber-600" size={48} />
-          <h1 className="text-3xl font-light text-gray-800 mb-2">Galería Fotográfica</h1>
-          <p className="text-gray-600">Accede a tus recuerdos especiales</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="bg-white/90 border border-orange-200 rounded-2xl p-8 w-full max-w-md">
+        <div className="text-center mb-6">
+          <Camera className="mx-auto mb-3 text-amber-600" size={48} />
+          <h1 className="text-2xl font-semibold text-gray-800">Galería Fotográfica</h1>
+          <p className="text-gray-600">Accede a tus recuerdos</p>
         </div>
-
         <div className="space-y-4">
-          {/* Campo para ID de usuario privado */}
-          <input
-            type="text"
-            placeholder="Ingresa tu ID (privadas)"
-            value={userId}
-            onChange={e => setUserId(e.target.value)}
-            className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none text-center font-mono"
-          />
-
-          <div className="space-y-3 pt-2">
-            <button
-              onClick={() => onPublic()}
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
-            >
-              <Unlock size={20} />
-              Ver todas públicas
-            </button>
-            <button
-              onClick={() => onPrivate(userId)}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
-            >
-              <Lock size={20} />
-              Entrar con ID
+          <button onClick={onPublic} className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-medium">
+            <Unlock size={18} /> Ver todas públicas
+          </button>
+          <div className="space-y-2">
+            <input type="text" placeholder="Ingresa tu ID" value={id} onChange={e => setId(e.target.value)} className="w-full px-4 py-3 border border-orange-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none text-center font-mono tracking-wider" />
+            <button onClick={() => onPrivate(id.trim())} className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-medium">
+              <Lock size={18} /> Entrar con ID
             </button>
           </div>
-
-          <div className="pt-4">
-            <button
-              onClick={() => onMaster()}
-              className="w-full border border-amber-300 hover:bg-amber-50 text-amber-800 py-3 rounded-lg transition-colors"
-            >
-              Administrador (PIN)
-            </button>
-          </div>
-
-          <p className="text-center text-sm text-gray-500 mt-3">
-            Para ver <strong>públicas</strong>: entra directo con el botón.<br/>
-            Para <strong>privadas</strong>: ingresa tu <strong>ID</strong> asignado por el administrador.
-          </p>
+          <button onClick={onAdmin} className="w-full border border-orange-300 text-gray-700 hover:bg-orange-50 py-3 rounded-lg flex items-center justify-center gap-2">
+            <Shield size={18} /> Administrador
+          </button>
         </div>
       </div>
     </div>
   )
 }
-
-export default Login

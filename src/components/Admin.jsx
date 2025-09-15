@@ -1,154 +1,142 @@
 import React, { useMemo, useState } from 'react'
 import { Shield, Plus, Trash2, KeyRound, UserPlus, Images, Save } from 'lucide-react'
 import {
-  getClients, upsertClient, deleteClient,
+  getClients, getClient, upsertClient, deleteClient,
   getUsers, addUser, removeUser,
   addPhoto, removePhoto, getAdmin, setAdminPin, randomId,
-  getUserPhotos, addUserPhoto, removeUserPhoto
+  getUserPhotos, addUserPhoto, removeUserPhoto,
+  saveImageFromFile, saveImageFromDataUrl
 } from '../lib/storage.js'
 
 const Admin = ({ onExit }) => {
-  const [clients, setClientsState] = useState(getClients())
+  const [clients, setClients] = useState(getClients())
   const [selected, setSelected] = useState(Object.keys(clients)[0] || '')
   const [pinInput, setPinInput] = useState('')
   const [authed, setAuthed] = useState(false)
 
   const admin = useMemo(() => getAdmin(), [])
 
+  // UI
   const [form, setForm] = useState({ code: '', name: '' })
   const [selectedUser, setSelectedUser] = useState('')
-  const [photoUrl, setPhotoUrl] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
-  const [userPhotoUrl, setUserPhotoUrl] = useState('')
-  const [newPin, setNewPin] = useState('')
+
+  const [photoUrl, setPhotoUrl] = useState('')
   const [clientFile, setClientFile] = useState(null)
+
+  const [userPhotoUrl, setUserPhotoUrl] = useState('')
   const [userFile, setUserFile] = useState(null)
 
-  const refresh = () => setClientsState(getClients())
+  const [newPin, setNewPin] = useState('')
+
+  const refresh = () => setClients(getClients())
 
   const doAuth = () => {
-    if (pinInput === admin.pin) {
-      setAuthed(true)
-    } else {
-      alert('PIN incorrecto')
-    }
+    if (pinInput === admin.pin) setAuthed(true)
+    else alert('PIN incorrecto')
   }
 
+  // ---- Clientes ----
   const createOrUpdateClient = () => {
-    if (!form.code || !form.name) return alert('Completa código y nombre')
+    if (!form.code || !form.name) { alert('Completa código y nombre'); return }
     upsertClient({ ...form, code: form.code.toUpperCase() })
     setForm({ code: '', name: '' })
     refresh()
   }
 
   const doDeleteClient = (code) => {
-    if (confirm('¿Eliminar cliente y sus datos?')) {
-      deleteClient(code)
-      setSelected('')
-      refresh()
-    }
+    if (!code) return
+    if (!confirm('¿Eliminar cliente y sus datos?')) return
+    deleteClient(code)
+    setSelected('')
+    refresh()
   }
 
+  // ---- Fotos a nivel cliente ----
   const addPhotoToClient = async () => {
-    if (!selected) return
+    if (!selected) { alert('Selecciona un cliente'); return }
     if (clientFile) {
-      const dataUrl = await fileToDataUrl(clientFile)
-      addPhoto(selected, dataUrl, isPrivate)
-      setClientFile(null)
-      setPhotoUrl('')
+      const ref = await saveImageFromFile(clientFile)
+      addPhoto(selected, ref, isPrivate)
+      setClientFile(null); setPhotoUrl('')
       refresh()
       return
     }
     if (photoUrl) {
-      addPhoto(selected, photoUrl, isPrivate)
-      setPhotoUrl('')
-      refresh()
+      if (photoUrl.startsWith('data:')) {
+        const ref = await saveImageFromDataUrl(photoUrl)
+        addPhoto(selected, ref, isPrivate)
+      } else {
+        addPhoto(selected, photoUrl, isPrivate)
+      }
+      setPhotoUrl(''); refresh()
       return
     }
     alert('Selecciona un archivo o ingresa una URL')
   }
 
   const removePhotoFromClient = (url, priv) => {
+    if (!selected || !url) return
     removePhoto(selected, url, priv)
     refresh()
   }
 
+  // ---- Fotos privadas por usuario ----
   const addPhotoToUser = async () => {
-    if (!selected || !selectedUser) { alert('Selecciona un usuario'); return }
+    if (!selected) { alert('Selecciona un cliente'); return }
+    if (!selectedUser) { alert('Selecciona un ID de usuario'); return }
+
     if (userFile) {
-      const dataUrl = await fileToDataUrl(userFile)
-      addUserPhoto(selected, selectedUser, dataUrl)
-      setUserFile(null)
-      setUserPhotoUrl('')
-      refresh()
+      const ref = await saveImageFromFile(userFile)
+      addUserPhoto(selected, selectedUser, ref)
+      setUserFile(null); setUserPhotoUrl(''); refresh()
       return
     }
     if (userPhotoUrl) {
-      addUserPhoto(selected, selectedUser, userPhotoUrl)
-      setUserPhotoUrl('')
-      refresh()
+      if (userPhotoUrl.startsWith('data:')) {
+        const ref = await saveImageFromDataUrl(userPhotoUrl)
+        addUserPhoto(selected, selectedUser, ref)
+      } else {
+        addUserPhoto(selected, selectedUser, userPhotoUrl)
+      }
+      setUserPhotoUrl(''); refresh()
       return
     }
     alert('Selecciona un archivo o ingresa una URL')
   }
 
   const removePhotoFromUser = (url) => {
-    if (!selected || !selectedUser) return
+    if (!selected || !selectedUser || !url) return
     removeUserPhoto(selected, selectedUser, url)
     refresh()
   }
 
-  const fileToDataUrl = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-
-  const onPickClientFile = async (e) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const dataUrl = await fileToDataUrl(f)
-    if (!selected) return
-    addPhoto(selected, dataUrl, isPrivate)
-    refresh()
-    e.target.value = ''
-  }
-
-  const onPickUserFile = async (e) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    if (!selected || !selectedUser) return alert('Selecciona un usuario')
-    const dataUrl = await fileToDataUrl(f)
-    addUserPhoto(selected, selectedUser, dataUrl)
-    refresh()
-    e.target.value = ''
-  }
-
+  // ---- IDs ----
   const addUserId = () => {
-    if (!selected) return
+    if (!selected) { alert('Selecciona un cliente'); return }
     const id = randomId(selected.split(/[0-9]/)[0] || 'ID')
-    addUser(selected, id)
-    refresh()
+    addUser(selected, id); refresh()
   }
 
   const addCustomUserId = (id) => {
-    if (!selected || !id) return
-    addUser(selected, id)
-    refresh()
+    if (!selected) { alert('Selecciona un cliente'); return }
+    if (!id) { alert('Ingresa un ID'); return }
+    addUser(selected, id); refresh()
   }
 
   const removeUserId = (id) => {
-    removeUser(selected, id)
-    refresh()
+    if (!selected || !id) return
+    removeUser(selected, id); refresh()
   }
 
+  // ---- PIN ----
   const updatePin = () => {
-    if (!newPin) return
+    if (!newPin) { alert('Ingresa un nuevo PIN'); return }
     setAdminPin(newPin)
     alert('PIN actualizado')
   }
 
+  // ---- Login Admin ----
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -176,7 +164,7 @@ const Admin = ({ onExit }) => {
     )
   }
 
-  const sel = clients[selected] || null
+  const sel = selected ? getClient(selected) : null
   const users = sel ? getUsers(sel.code) : []
 
   return (
@@ -213,13 +201,13 @@ const Admin = ({ onExit }) => {
               placeholder="Código (ej: LUNA2024)"
               className="w-full px-3 py-2 border rounded-lg"
               value={form.code}
-              onChange={e => setForm(f => ({...f, code: e.target.value.toUpperCase()}))}
+              onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
             />
             <input
               placeholder="Nombre"
               className="w-full px-3 py-2 border rounded-lg"
               value={form.name}
-              onChange={e => setForm(f => ({...f, name: e.target.value}))}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             />
             <button onClick={createOrUpdateClient} className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg flex items-center justify-center gap-2">
               <Plus size={16} /> Guardar
@@ -240,7 +228,7 @@ const Admin = ({ onExit }) => {
           </div>
         </div>
 
-        {/* Columna centro-derecha */}
+        {/* Columna centro: fotos */}
         <div className="bg-white/80 border rounded-xl p-4 md:col-span-2">
           {sel ? (
             <>
@@ -249,9 +237,7 @@ const Admin = ({ onExit }) => {
                 <h3 className="font-semibold">Fotos de {sel.name}</h3>
               </div>
 
-              
-                
-              {/* Selección de usuario para fotos privadas */}
+              {/* Usuarios del cliente */}
               <div className="mb-4">
                 <h4 className="font-semibold mb-2">Usuarios del cliente</h4>
                 <div className="flex flex-wrap gap-2">
@@ -261,11 +247,10 @@ const Admin = ({ onExit }) => {
                     </button>
                   ))}
                 </div>
-                {!users?.length && <p className="text-sm text-gray-500 mt-2">No hay usuarios todavía. Genera o agrega uno.</p>}
+                {!users.length && <p className="text-sm text-gray-500 mt-2">No hay usuarios todavía. Genera o agrega uno.</p>}
               </div>
 
-
-              {/* Agregar foto a nivel cliente (pública/privada global) */}
+              {/* Agregar foto a nivel cliente */}
               <div className="mb-3 space-y-2">
                 <input
                   placeholder="URL de la foto (opcional)"
@@ -274,7 +259,7 @@ const Admin = ({ onExit }) => {
                   onChange={e => setPhotoUrl(e.target.value)}
                 />
                 <input type="file" accept="image/*" onChange={e => setClientFile(e.target.files?.[0] || null)} />
-                <label className="inline-flex items-center gap-2" title="Definir si la foto es privada global del cliente">
+                <label className="inline-flex items-center gap-2">
                   <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} />
                   <span>Privada (global del cliente)</span>
                 </label>
@@ -309,7 +294,7 @@ const Admin = ({ onExit }) => {
                 ))}
               </div>
 
-              {/* Fotos privadas por usuario (si hay uno seleccionado) */}
+              {/* Fotos privadas por usuario */}
               {selectedUser && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-2">Fotos privadas de <code className='font-mono'>{selectedUser}</code></h4>
@@ -347,7 +332,7 @@ const Admin = ({ onExit }) => {
                   <UserPlus className="text-amber-600" />
                   <h3 className="font-semibold">IDs autorizados</h3>
                 </div>
-                <div className="mb-3 space-y-2">
+                <div className="flex flex-col md:flex-row gap-2 mb-3">
                   <button onClick={addUserId} className="px-3 py-2 rounded-lg border flex items-center gap-2">
                     <Plus size={16}/> Generar ID
                   </button>
