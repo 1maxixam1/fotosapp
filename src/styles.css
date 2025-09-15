@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Falling leaves */
+@keyframes leaf-fall-kf {
+  0%   { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.9; }
+  50%  { transform: translateY(50vh) translateX(12vw) rotate(90deg); }
+  100% { transform: translateY(110vh) translateX(-12vw) rotate(180deg); opacity: 0.95; }
+}
+@keyframes leaf-spin-a-kf { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes leaf-spin-b-kf { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+.leaf-fall { animation-name: leaf-fall-kf; animation-timing-function: linear; animation-iteration-count: infinite; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+.leaf-spin-a { animation-name: leaf-fall-kf, leaf-spin-a-kf; animation-timing-function: linear, ease-in-out; animation-iteration-count: infinite, infinite; }
+.leaf-spin-b { animation-name: leaf-fall-kf, leaf-spin-b-kf; animation-timing-function: linear, ease-in-out; animation-iteration-count: infinite, infinite; }
